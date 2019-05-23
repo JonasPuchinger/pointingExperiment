@@ -20,6 +20,7 @@ class PointingExperimentModel(object):
         self.elapsed = 0
         self.mouse_moving = False
         self.create_targets()
+        self.current_targets = []
 
     def create_targets(self):
         targets_1 = list(itertools.product(self.x_distances[0], self.y_distances[0], self.widths))
@@ -54,6 +55,24 @@ class PointingExperimentModel(object):
             self.log_time(self.stop_measurement(), click_offset)
             self.elapsed += 1
             return True
+
+    def check_click(self, event):
+        for num, ellipse in enumerate(self.current_targets):
+            if ellipse.contains(event.pos()):
+                #TODO
+                #calculate offset if necessary
+                click_offset = (0 ,0)
+                self.log_time(self.stop_measurement(), click_offset)
+                self.elapsed += 1
+
+                if num == 3:
+                    print("Clicked right bubble...")
+                else:
+                    print("Clicked wrong bubble...")
+
+                return True
+        print("Clicked no bubble...")
+        return False
 
     def log_time(self, time, click_offset):
         x_distance, y_distance, width = self.current_target()[3]
@@ -94,8 +113,7 @@ class PointingExperiment(QtWidgets.QWidget):
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
-            tp = self.target_pos(self.model.current_target()[3][0], self.model.current_target()[3][1])
-            hit = self.model.register_click(tp, (ev.x(), ev.y()))
+            hit = self.model.check_click(ev)
             if hit:
                 QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
             self.update()
@@ -132,6 +150,7 @@ class PointingExperiment(QtWidgets.QWidget):
         qp.drawRect(event.rect())
 
     def drawTargets(self, event, qp):
+        self.model.current_targets = []
         if self.model.current_target() is not None:
             for i, target in enumerate(self.model.current_target()):
                 self.drawTarget(event, qp, target, i)
@@ -142,12 +161,16 @@ class PointingExperiment(QtWidgets.QWidget):
     def drawTarget(self, event, qp, target, index):
         x_distance, y_distance, width = target
         x, y = self.target_pos(x_distance, y_distance)
+
         if index <= 2:
             qp.setBrush(QtGui.QColor(200, 34, 20))
-            qp.drawEllipse(x - width / 2, y - width / 2, width, width)
         else:
             qp.setBrush(QtGui.QColor(20, 200, 150))
-            qp.drawEllipse(x - width / 2, y - width / 2, width, width) 
+
+        ellipse = QtCore.QRect(x - width / 2, y - width / 2, width, width)
+        self.model.current_targets.append(ellipse)
+        qp.drawEllipse(ellipse)
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
