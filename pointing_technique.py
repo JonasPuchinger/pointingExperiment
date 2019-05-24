@@ -2,21 +2,31 @@
 # -*- coding: utf-8 -*-
 
 import math
+from PyQt5 import QtGui
+
 
 class PointingTechnique():
 
-    def __init__(self):
+    def __init__(self, other_self):
+        self.other_self = other_self
         pass
 
-    def filter(self, curr_cursor_pos, curr_targets):
-        distances_to_targets = []
-        return distances_to_targets[0]
+    def set_mouse(self, ev, current_targets, widths):
+        nearest_rec = self.check_for_nearest(ev, current_targets, widths)
+        if nearest_rec:
+            print(nearest_rec)
+            QtGui.QCursor.setPos(self.other_self.mapToGlobal(nearest_rec.center()))
 
-    def get_distance(self, cursor, target):
-        return math.sqrt(
-            abs(cursor[0] - target[0]) ** 2 +
-            abs(cursor[1] - target[1]) ** 2
-        )
 
-pt = PointingTechnique()
-print(pt.get_distance((50, 50), (90, 90)))
+
+    def check_for_nearest(self, ev, current_targets, widths):
+        nearest = []
+        for x, i in enumerate(current_targets):
+            distance = math.sqrt((i.center().x() - ev.x()) ** 2 +
+                                 (i.center().y() - ev.y()) ** 2) - widths[x] / 2
+            if distance <= 50:
+                nearest.append(i)
+        if len(nearest) != 1:
+            return None
+        else:
+            return nearest[0]

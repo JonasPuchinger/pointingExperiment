@@ -6,6 +6,7 @@ import json
 import random
 import math
 import itertools
+import pointing_technique
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 class PointingExperimentModel(object):
@@ -69,8 +70,8 @@ class PointingExperimentModel(object):
                     print("Clicked right bubble...")
                 else:
                     print("Clicked wrong bubble...")
-
                 return True
+
         print("Clicked no bubble...")
         return False
 
@@ -101,6 +102,7 @@ class PointingExperiment(QtWidgets.QWidget):
         self.model = model
         self.start_pos = (960, 400)
         self.initUI()
+        self.tq = pointing_technique.PointingTechnique(self)
 
     def initUI(self):
         self.text = "Please click on the target"
@@ -121,6 +123,7 @@ class PointingExperiment(QtWidgets.QWidget):
     def mouseMoveEvent(self, ev):
         if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
             self.model.start_measurement()
+            self.tq.set_mouse(ev, self.model.current_targets, [i[2] for i in self.model.current_target()])
             self.update()
     
     def paintEvent(self, event):
