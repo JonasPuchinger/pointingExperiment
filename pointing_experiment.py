@@ -56,26 +56,29 @@ class PointingExperimentModel(object):
         self.targets, self.append_pointing_technique = zip(*connected_list)
 
     def current_target(self):
-        if self.elapsed >= len(self.targets):
+        if self.elapsed > len(self.targets) or self.elapsed == 0:
             return None
         else:
-            return self.targets[self.elapsed]
+            return self.targets[self.elapsed-1]
 
     # def click_log():
     #     pass
 
     # @click_log
     def check_click(self, event):
-        for num, ellipse in enumerate(self.current_targets):
-            if ellipse.contains(event.pos()):
-                click_offset = (ellipse.center().x()-event.x(), ellipse.center().y()-event.y())
-                self.log_time(self.stop_measurement(), click_offset)
-                self.elapsed += 1
+        if self.elapsed != 0:
+            for num, ellipse in enumerate(self.current_targets):
+                if ellipse.contains(event.pos()):
+                    click_offset = (ellipse.center().x()-event.x(), ellipse.center().y()-event.y())
+                    self.log_time(self.stop_measurement(), click_offset)
+                    self.elapsed += 1
 
-                if num == 3:
-                    self.right_target_clicked = True
-                else:
-                    self.right_target_clicked = False
+                    if num == 3:
+                        self.right_target_clicked = True
+                    else:
+                        self.right_target_clicked = False
+        else:
+            self.elapsed += 1
 
     def log_time(self, time, click_offset):
         x_distance, y_distance, width = self.current_target()[3]
@@ -112,7 +115,8 @@ class PointingExperiment(QtWidgets.QWidget):
         self.tq = pointing_technique.PointingTechnique(self)
 
     def initUI(self):
-        self.text = "Please click on the green target"
+        self.text = "Please click on the green target \n" \
+                    "Click to start"
         self.setGeometry(0, 0, self.size[0], self.size[1])
         self.setWindowTitle('Pointing Experiment')
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -126,9 +130,8 @@ class PointingExperiment(QtWidgets.QWidget):
             self.update()
 
     def mouseMoveEvent(self, ev):
-        if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
-            self.model.start_measurement()
-            if self.model.append_pointing_technique[self.model.elapsed]:
+        if self.model.elapsed != 0:
+            if self.model.append_pointing_technique[self.model.elapsed-1]:
                 self.tq.set_mouse(ev, self.model.current_targets, [i[2] for i in self.model.current_target()])
             self.update()
     
@@ -154,7 +157,9 @@ class PointingExperiment(QtWidgets.QWidget):
         if self.model.current_target() is not None:
             for i, target in enumerate(self.model.current_target()):
                 self.drawTarget(qp, target, i)
-        else:
+                self.model.start_measurement()
+
+        elif self.model.elapsed != 0:
             sys.stderr.write("no targets left...")
             sys.exit(1)
 
