@@ -14,7 +14,6 @@ class PointingTechnique():
     def set_mouse(self, ev, current_targets, widths):
         nearest_rec = self.check_for_nearest(ev, current_targets, widths)
         if nearest_rec:
-            print(nearest_rec)
             QtGui.QCursor.setPos(self.other_self.mapToGlobal(nearest_rec.center()))
 
 

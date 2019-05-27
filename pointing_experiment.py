@@ -4,6 +4,7 @@
 import sys
 import json
 import random
+import numpy
 import math
 import itertools
 import pointing_technique
@@ -11,11 +12,13 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 class PointingExperimentModel(object):
 
-    def __init__(self, user_id, repetitions, widths, x_distances, y_distances):
+    def __init__(self, user_id, repetitions, widths, x_distances, y_distances, width, height):
         self.timer = QtCore.QTime()
         self.user_id = user_id
         self.repetitions = repetitions
         self.widths = widths
+        self.width = width
+        self.height = height
         self.x_distances = x_distances
         self.y_distances = y_distances
         self.elapsed = 0
@@ -24,16 +27,20 @@ class PointingExperimentModel(object):
         self.current_targets = []
 
     def create_targets(self):
-        targets_1 = list(itertools.product(self.x_distances[0], self.y_distances[0], self.widths))
-        targets_2 = list(itertools.product(self.x_distances[1], self.y_distances[1], self.widths))
-        targets_3 = list(itertools.product(self.x_distances[2], self.y_distances[2], self.widths))
-        targets_4 = list(itertools.product(self.x_distances[3], self.y_distances[3], self.widths))
-        random.shuffle(targets_1)
-        random.shuffle(targets_2)
-        random.shuffle(targets_3)
-        random.shuffle(targets_4)
-        self.targets = list(zip(targets_1, targets_2, targets_3, targets_4))
-    
+        self.targets = []
+        for width in self.widths:
+            for i in range(11):
+                ran_x = random.randrange(width, (self.width/2-width), 1)
+                ran_y = random.randrange(width, (self.height/2-width), 1)
+                targets = [(ran_x, ran_y, width),
+                                (ran_x, -ran_y, width),
+                                (-ran_x, ran_y, width),
+                                (-ran_x, -ran_y, width)]
+                random.shuffle(targets)
+                self.targets.append(targets),
+
+        random.shuffle(self.targets)
+
     def current_target(self):
         if self.elapsed >= len(self.targets):
             return None
@@ -97,16 +104,17 @@ class PointingExperimentModel(object):
 
 class PointingExperiment(QtWidgets.QWidget):
 
-    def __init__(self, model):
+    def __init__(self, model, width, height):
         super(PointingExperiment, self).__init__()
         self.model = model
-        self.start_pos = (960, 400)
+        self.size = (width, height)
+        self.start_pos = (width/2, height/2)
         self.initUI()
         self.tq = pointing_technique.PointingTechnique(self)
 
     def initUI(self):
         self.text = "Please click on the target"
-        self.setGeometry(0, 0, 1920, 800)
+        self.setGeometry(0, 0, self.size[0], self.size[1])
         self.setWindowTitle('Pointing Experiment')
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
@@ -180,8 +188,11 @@ def main():
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <setup file>\n" % sys.argv[0])
         sys.exit(1)
-    model = PointingExperimentModel(*parse_setup(sys.argv[1]))
-    fitts_law_test = PointingExperiment(model)
+    screen_resolution = app.desktop().screenGeometry()
+    width, height = screen_resolution.width(), screen_resolution.height()
+
+    model = PointingExperimentModel(*parse_setup(sys.argv[1]), width, height)
+    fitts_law_test = PointingExperiment(model, width, height)
     sys.exit(app.exec_())
 
 
