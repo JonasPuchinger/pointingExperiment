@@ -10,6 +10,7 @@ import itertools
 import pointing_technique
 from PyQt5 import QtGui, QtWidgets, QtCore
 
+
 class PointingExperimentModel(object):
 
     def __init__(self, user_id, repetitions, widths, x_distances, y_distances, width, height):
@@ -75,9 +76,6 @@ class PointingExperimentModel(object):
                     self.right_target_clicked = True
                 else:
                     self.right_target_clicked = False
-                return True
-
-        return False
 
     def log_time(self, time, click_offset):
         x_distance, y_distance, width = self.current_target()[3]
@@ -94,17 +92,10 @@ class PointingExperimentModel(object):
             self.right_target_clicked))
 
     def start_measurement(self):
-        if not self.mouse_moving:
-            self.timer.start()
-            self.mouse_moving = True
+        self.timer.start()
 
     def stop_measurement(self):
-        if self.mouse_moving:
-            elapsed = self.timer.elapsed()
-            self.mouse_moving = False
-            return elapsed
-        else:
-            return -1
+        return self.timer.elapsed()
 
     def timestamp(self):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
@@ -121,19 +112,17 @@ class PointingExperiment(QtWidgets.QWidget):
         self.tq = pointing_technique.PointingTechnique(self)
 
     def initUI(self):
-        self.text = "Please click on the target"
+        self.text = "Please click on the green target"
         self.setGeometry(0, 0, self.size[0], self.size[1])
         self.setWindowTitle('Pointing Experiment')
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-        QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
         self.setMouseTracking(True)
         self.show()
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
-            hit = self.model.check_click(ev)
-            if hit:
-                QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
+            self.model.check_click(ev)
+            self.text = ""
             self.update()
 
     def mouseMoveEvent(self, ev):
@@ -146,7 +135,6 @@ class PointingExperiment(QtWidgets.QWidget):
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
-        self.drawBackground(event, qp)
         self.drawText(event, qp)
         self.drawTargets(event, qp)
         qp.end()
@@ -154,31 +142,23 @@ class PointingExperiment(QtWidgets.QWidget):
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
         qp.setFont(QtGui.QFont('Decorative', 32))
-        self.text = "%d / %d (%05d ms)" % (self.model.elapsed, len(self.model.targets), self.model.timer.elapsed())
         qp.drawText(event.rect(), QtCore.Qt.AlignCenter, self.text)
 
     def target_pos(self, x_distance, y_distance):
         x = self.start_pos[0] + x_distance
         y = self.start_pos[1] + y_distance
-        return (x, y)
-
-    def drawBackground(self, event, qp):
-        if self.model.mouse_moving:
-            qp.setBrush(QtGui.QColor(220, 190, 190))
-        else:
-            qp.setBrush(QtGui.QColor(200, 200, 200))
-        qp.drawRect(event.rect())
+        return x, y
 
     def drawTargets(self, event, qp):
         self.model.current_targets = []
         if self.model.current_target() is not None:
             for i, target in enumerate(self.model.current_target()):
-                self.drawTarget(event, qp, target, i)
+                self.drawTarget(qp, target, i)
         else:
             sys.stderr.write("no targets left...")
             sys.exit(1)
 
-    def drawTarget(self, event, qp, target, index):
+    def drawTarget(self, qp, target, index):
         x_distance, y_distance, width = target
         x, y = self.target_pos(x_distance, y_distance)
 
