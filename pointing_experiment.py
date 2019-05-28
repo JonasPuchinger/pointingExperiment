@@ -4,9 +4,10 @@
 import sys
 import json
 import random
-import numpy
 import math
 import itertools
+import os
+import csv
 import pointing_technique
 from PyQt5 import QtGui, QtWidgets, QtCore
 
@@ -23,6 +24,8 @@ class PointingExperimentModel(object):
         self.x_distances = x_distances
         self.y_distances = y_distances
         self.elapsed = 0
+        self.elapsed_distance = 0
+        self.mouse_location = (0, 0)
         self.mouse_moving = False
         self.right_target_clicked = False
         self.create_targets()
@@ -33,13 +36,15 @@ class PointingExperimentModel(object):
         self.append_pointing_technique = []
         for width in self.widths:
             for i in range(10):
-                ran_x = random.randrange(width, (self.width/2-width), 1)
-                ran_y = random.randrange(width, (self.height/2-width), 1)
                 targets = [
-                    (random.randrange(width, (self.width/2-width), 1), random.randrange(width, (self.height/2-width), 1), width),
-                    (random.randrange(width, (self.width/2-width), 1), -random.randrange(width, (self.height/2-width), 1), width),
-                    (-random.randrange(width, (self.width/2-width), 1), random.randrange(width, (self.height/2-width), 1), width),
-                    (-random.randrange(width, (self.width/2-width), 1), -random.randrange(width, (self.height/2-width), 1), width)
+                    (random.randrange(width, (self.width/2-width), 1),
+                     random.randrange(width, (self.height/2-width), 1), width),
+                    (random.randrange(width, (self.width/2-width), 1),
+                     -random.randrange(width, (self.height/2-width), 1), width),
+                    (-random.randrange(width, (self.width/2-width), 1),
+                     random.randrange(width, (self.height/2-width), 1), width),
+                    (-random.randrange(width, (self.width/2-width), 1),
+                     -random.randrange(width, (self.height/2-width), 1), width)
                 ]
 
                 if i%2 == 0:
@@ -70,7 +75,7 @@ class PointingExperimentModel(object):
             for num, ellipse in enumerate(self.current_targets):
                 if ellipse.contains(event.pos()):
                     click_offset = (ellipse.center().x()-event.x(), ellipse.center().y()-event.y())
-                    self.log_time(self.stop_measurement(), click_offset)
+                    self.log_csv(self.stop_measurement(), click_offset)
                     self.elapsed += 1
 
                     if num == 3:
@@ -80,19 +85,61 @@ class PointingExperimentModel(object):
         else:
             self.elapsed += 1
 
-    def log_time(self, time, click_offset):
+        self.save_mouse_location(event)
+
+    def save_mouse_location(self, event):
+        if self.elapsed_distance != self.elapsed:
+            self.mouse_location = (event.x(), event.y())
+            self.elapsed_distance += 1
+
+    def log_csv(self, time, click_offset):
+        file_name = 'pointing_experiment_results.csv'
         x_distance, y_distance, width = self.current_target()[3]
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (
-            self.timestamp(),
-            self.user_id,
-            self.elapsed,
-            x_distance,
-            y_distance,
-            width,
-            time,
-            click_offset[0],
-            click_offset[1],
-            self.right_target_clicked))
+        ellipse = self.current_targets[3]
+        target_distance = math.sqrt((ellipse.center().x() - self.mouse_location[0]) ** 2 +
+                                    (ellipse.center().y() - self.mouse_location[1]) ** 2)
+        res = [self.user_id, self.elapsed,  self.append_pointing_technique[self.elapsed-1],
+               width, click_offset[0], click_offset[1], self.right_target_clicked, x_distance, y_distance,
+               time, target_distance, self.timestamp()]
+
+        if not os.path.isfile("./"+file_name):
+            # https://realpython.com/python-csv/
+            with open(file_name, 'w', newline='') as result_file:
+                fieldnames = [
+                    'Participant_ID',
+                    'Count',
+                    'Pointing_Technique',
+                    'Width',
+                    'Click_Offset_X',
+                    'Click_Offset_Y',
+                    'Right_Target_Clicked',
+                    'X_Distance',
+                    'Y_Distance',
+                    'Time',
+                    'Target_Distance',
+                    "Timestamp"
+                ]
+                file_writer = csv.DictWriter(result_file, fieldnames=fieldnames)
+                file_writer.writeheader()
+                file_writer.writerow({fieldnames[0]: res[0],
+                                      fieldnames[1]: res[1],
+                                      fieldnames[2]: res[2],
+                                      fieldnames[3]: res[3],
+                                      fieldnames[4]: res[4],
+                                      fieldnames[5]: res[5],
+                                      fieldnames[6]: res[6],
+                                      fieldnames[7]: res[7],
+                                      fieldnames[8]: res[8],
+                                      fieldnames[9]: res[9],
+                                      fieldnames[10]: res[10],
+                                      fieldnames[11]: res[11]
+                                      })
+        else:
+            # https://stackoverflow.com/questions/2363731/append-new-row-to-old-csv-file-python
+            with open(file_name, 'a') as result_file:
+                fields = res
+                file_writer = csv.writer(result_file)
+                file_writer.writerow(fields)
 
     def start_measurement(self):
         self.timer.start()
@@ -158,6 +205,7 @@ class PointingExperiment(QtWidgets.QWidget):
             for i, target in enumerate(self.model.current_target()):
                 self.drawTarget(qp, target, i)
                 self.model.start_measurement()
+
 
         elif self.model.elapsed != 0:
             sys.stderr.write("no targets left...")
