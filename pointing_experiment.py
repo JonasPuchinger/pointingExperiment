@@ -14,15 +14,14 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 
 class PointingExperimentModel(object):
 
-    def __init__(self, user_id, repetitions, widths, x_distances, y_distances, width, height):
+    def __init__(self, user_id, repetitions, widths, pointing_technique, width, height):
         self.timer = QtCore.QTime()
         self.user_id = user_id
         self.repetitions = repetitions
         self.widths = widths
+        self.pointing_technique = pointing_technique
         self.width = width
         self.height = height
-        self.x_distances = x_distances
-        self.y_distances = y_distances
         self.elapsed = 0
         self.elapsed_distance = 0
         self.mouse_location = (0, 0)
@@ -34,8 +33,9 @@ class PointingExperimentModel(object):
     def create_targets(self):
         self.targets = []
         self.append_pointing_technique = []
-        for width in self.widths:
-            for i in range(10):
+        for i in range(10):
+            for num, width in enumerate(self.widths):
+
                 targets = [
                     (random.randrange(width, (self.width/2-width), 1),
                      random.randrange(width, (self.height/2-width), 1), width),
@@ -47,18 +47,10 @@ class PointingExperimentModel(object):
                      -random.randrange(width, (self.height/2-width), 1), width)
                 ]
 
-                if i%2 == 0:
-                    apt = True
-                else:
-                    apt = False
-                self.append_pointing_technique.append(apt)
+                self.append_pointing_technique.append(self.pointing_technique[num])
 
                 random.shuffle(targets)
                 self.targets.append(targets),
-
-        connected_list = list(zip(self.targets, self.append_pointing_technique))
-        random.shuffle(connected_list)
-        self.targets, self.append_pointing_technique = zip(*connected_list)
 
     def current_target(self):
         if self.elapsed > len(self.targets) or self.elapsed == 0:
@@ -244,9 +236,8 @@ def parse_setup(filename):
     user_id = contents['user_id']
     repetitions = contents['repetitions']
     widths = contents['widths']
-    x_distances = contents['x_distances']
-    y_distances = contents['y_distances']
-    return user_id, repetitions, widths, x_distances, y_distances
+    pointing_technique = contents['pointing_technique']
+    return user_id, repetitions, widths, pointing_technique
 
 if __name__ == '__main__':
     main()
