@@ -10,6 +10,7 @@ import itertools
 import pointing_technique
 from PyQt5 import QtGui, QtWidgets, QtCore
 
+
 class PointingExperimentModel(object):
 
     def __init__(self, user_id, repetitions, widths, x_distances, y_distances, width, height):
@@ -23,84 +24,85 @@ class PointingExperimentModel(object):
         self.y_distances = y_distances
         self.elapsed = 0
         self.mouse_moving = False
+        self.right_target_clicked = False
         self.create_targets()
         self.current_targets = []
 
     def create_targets(self):
         self.targets = []
+        self.append_pointing_technique = []
         for width in self.widths:
-            for i in range(11):
+            for i in range(10):
                 ran_x = random.randrange(width, (self.width/2-width), 1)
                 ran_y = random.randrange(width, (self.height/2-width), 1)
-                targets = [ (random.randrange(width, (self.width/2-width), 1), random.randrange(width, (self.height/2-width), 1), width),
-                            (random.randrange(width, (self.width/2-width), 1), -random.randrange(width, (self.height/2-width), 1), width),
-                            (-random.randrange(width, (self.width/2-width), 1), random.randrange(width, (self.height/2-width), 1), width),
-                            (-random.randrange(width, (self.width/2-width), 1), -random.randrange(width, (self.height/2-width), 1), width)]
+                targets = [
+                    (ran_x, ran_y, width),
+                    (ran_x, -ran_y, width),
+                    (-ran_x, ran_y, width),
+                    (-ran_x, -ran_y, width)
+                ]
+
+                if i%2 == 0:
+                    apt = True
+                else:
+                    apt = False
+                self.append_pointing_technique.append(apt)
+
                 random.shuffle(targets)
                 self.targets.append(targets),
 
-        random.shuffle(self.targets)
+        connected_list = list(zip(self.targets, self.append_pointing_technique))
+        random.shuffle(connected_list)
+        self.targets, self.append_pointing_technique = zip(*connected_list)
 
     def current_target(self):
-        if self.elapsed >= len(self.targets):
+        if self.elapsed > len(self.targets) or self.elapsed == 0:
             return None
         else:
-            return self.targets[self.elapsed]
+            return self.targets[self.elapsed-1]
 
     # def click_log():
     #     pass
 
     # @click_log
-    def register_click(self, target_pos, click_pos):
-        dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
-                         (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
-        target_dist = math.sqrt(self.current_target()[3][0] ** 2 +
-                                self.current_target()[3][1] ** 2)
-        if dist > target_dist:
-            return False
-        else:
-            click_offset = (target_pos[0] - click_pos[0], target_pos[1] - click_pos[1])
-            self.log_time(self.stop_measurement(), click_offset)
-            self.elapsed += 1
-            return True
-
     def check_click(self, event):
-        for num, ellipse in enumerate(self.current_targets):
-            if ellipse.contains(event.pos()):
-                #TODO
-                #calculate offset if necessary
-                click_offset = (0 ,0)
-                self.log_time(self.stop_measurement(), click_offset)
-                self.elapsed += 1
+        if self.elapsed != 0:
+            for num, ellipse in enumerate(self.current_targets):
+                if ellipse.contains(event.pos()):
+                    click_offset = (ellipse.center().x()-event.x(), ellipse.center().y()-event.y())
+                    self.log_time(self.stop_measurement(), click_offset)
+                    self.elapsed += 1
 
-                if num == 3:
-                    print("Clicked right bubble...")
-                else:
-                    print("Clicked wrong bubble...")
-                return True
-
-        print("Clicked no bubble...")
-        return False
+                    if num == 3:
+                        self.right_target_clicked = True
+                    else:
+                        self.right_target_clicked = False
+        else:
+            self.elapsed += 1
 
     def log_time(self, time, click_offset):
         x_distance, y_distance, width = self.current_target()[3]
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d" % (self.timestamp(), self.user_id, self.elapsed, x_distance, y_distance, width, time, click_offset[0], click_offset[1]))
+        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (
+            self.timestamp(),
+            self.user_id,
+            self.elapsed,
+            x_distance,
+            y_distance,
+            width,
+            time,
+            click_offset[0],
+            click_offset[1],
+            self.right_target_clicked))
 
     def start_measurement(self):
-        if not self.mouse_moving:
-            self.timer.start()
-            self.mouse_moving = True
+        self.timer.start()
 
     def stop_measurement(self):
-        if self.mouse_moving:
-            elapsed = self.timer.elapsed()
-            self.mouse_moving = False
-            return elapsed
-        else:
-            return -1
+        return self.timer.elapsed()
 
     def timestamp(self):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
+
 
 class PointingExperiment(QtWidgets.QWidget):
 
@@ -113,31 +115,29 @@ class PointingExperiment(QtWidgets.QWidget):
         self.tq = pointing_technique.PointingTechnique(self)
 
     def initUI(self):
-        self.text = "Please click on the target"
+        self.text = "Please click on the green target \n" \
+                    "Click to start"
         self.setGeometry(0, 0, self.size[0], self.size[1])
         self.setWindowTitle('Pointing Experiment')
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-        QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
         self.setMouseTracking(True)
         self.show()
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
-            hit = self.model.check_click(ev)
-            if hit:
-                QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
+            self.model.check_click(ev)
+            self.text = ""
             self.update()
 
     def mouseMoveEvent(self, ev):
-        if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
-            self.model.start_measurement()
-            self.tq.set_mouse(ev, self.model.current_targets, [i[2] for i in self.model.current_target()])
+        if self.model.elapsed != 0:
+            if self.model.append_pointing_technique[self.model.elapsed-1]:
+                self.tq.set_mouse(ev, self.model.current_targets, [i[2] for i in self.model.current_target()])
             self.update()
     
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
-        self.drawBackground(event, qp)
         self.drawText(event, qp)
         self.drawTargets(event, qp)
         qp.end()
@@ -145,31 +145,25 @@ class PointingExperiment(QtWidgets.QWidget):
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
         qp.setFont(QtGui.QFont('Decorative', 32))
-        self.text = "%d / %d (%05d ms)" % (self.model.elapsed, len(self.model.targets), self.model.timer.elapsed())
         qp.drawText(event.rect(), QtCore.Qt.AlignCenter, self.text)
 
     def target_pos(self, x_distance, y_distance):
         x = self.start_pos[0] + x_distance
         y = self.start_pos[1] + y_distance
-        return (x, y)
-
-    def drawBackground(self, event, qp):
-        if self.model.mouse_moving:
-            qp.setBrush(QtGui.QColor(220, 190, 190))
-        else:
-            qp.setBrush(QtGui.QColor(200, 200, 200))
-        qp.drawRect(event.rect())
+        return x, y
 
     def drawTargets(self, event, qp):
         self.model.current_targets = []
         if self.model.current_target() is not None:
             for i, target in enumerate(self.model.current_target()):
-                self.drawTarget(event, qp, target, i)
-        else:
+                self.drawTarget(qp, target, i)
+                self.model.start_measurement()
+
+        elif self.model.elapsed != 0:
             sys.stderr.write("no targets left...")
             sys.exit(1)
 
-    def drawTarget(self, event, qp, target, index):
+    def drawTarget(self, qp, target, index):
         x_distance, y_distance, width = target
         x, y = self.target_pos(x_distance, y_distance)
 
