@@ -32,10 +32,10 @@ class PointingExperimentModel(object):
             for i in range(11):
                 ran_x = random.randrange(width, (self.width/2-width), 1)
                 ran_y = random.randrange(width, (self.height/2-width), 1)
-                targets = [(ran_x, ran_y, width),
-                                (ran_x, -ran_y, width),
-                                (-ran_x, ran_y, width),
-                                (-ran_x, -ran_y, width)]
+                targets = [ (random.randrange(width, (self.width/2-width), 1), random.randrange(width, (self.height/2-width), 1), width),
+                            (random.randrange(width, (self.width/2-width), 1), -random.randrange(width, (self.height/2-width), 1), width),
+                            (-random.randrange(width, (self.width/2-width), 1), random.randrange(width, (self.height/2-width), 1), width),
+                            (-random.randrange(width, (self.width/2-width), 1), -random.randrange(width, (self.height/2-width), 1), width)]
                 random.shuffle(targets)
                 self.targets.append(targets),
 
