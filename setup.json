@@ -1,6 +1,6 @@
 {
-    "user_id": 1,
-    "repetitions": 4,
-    "widths": [19, 19, 94, 94],
-    "pointing_technique": [true, false, true , false]
+    "user_id": 4,
+    "repetitions": 10,
+    "widths": [94, 19, 19, 94],
+    "pointing_technique": [false, true, false, true]
 }

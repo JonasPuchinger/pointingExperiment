@@ -16,8 +16,6 @@ class PointingTechnique():
         if nearest_rec:
             QtGui.QCursor.setPos(self.other_self.mapToGlobal(nearest_rec.center()))
 
-
-
     def check_for_nearest(self, ev, current_targets, widths):
         nearest = []
         for x, i in enumerate(current_targets):

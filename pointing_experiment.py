@@ -65,14 +65,13 @@ class PointingExperimentModel(object):
         if self.elapsed != 0:
             for num, ellipse in enumerate(self.current_targets):
                 if ellipse.contains(event.pos()):
-                    click_offset = (ellipse.center().x()-event.x(), ellipse.center().y()-event.y())
-                    self.log_csv(self.stop_measurement(), click_offset)
-                    self.elapsed += 1
-
                     if num == 3:
                         self.right_target_clicked = True
                     else:
                         self.right_target_clicked = False
+                    click_offset = (ellipse.center().x() - event.x(), ellipse.center().y() - event.y())
+                    self.log_csv(self.stop_measurement(), click_offset)
+                    self.elapsed += 1
         else:
             self.elapsed += 1
 
@@ -203,7 +202,6 @@ class PointingExperiment(QtWidgets.QWidget):
             for i, target in enumerate(self.model.current_target()):
                 self.drawTarget(qp, target, i)
                 self.model.start_measurement()
-
 
         elif self.model.elapsed != 0:
             sys.stderr.write("no targets left...")
