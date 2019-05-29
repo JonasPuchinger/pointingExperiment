@@ -89,9 +89,12 @@ class PointingExperimentModel(object):
         ellipse = self.current_targets[3]
         target_distance = math.sqrt((ellipse.center().x() - self.mouse_location[0]) ** 2 +
                                     (ellipse.center().y() - self.mouse_location[1]) ** 2)
+        fitts_bits = math.log2( (2*target_distance) / width)
+        fitts_performance = fitts_bits / (time/1000)
+
         res = [self.user_id, self.elapsed,  self.append_pointing_technique[self.elapsed-1],
                width, click_offset[0], click_offset[1], self.right_target_clicked, x_distance, y_distance,
-               time, target_distance, self.timestamp()]
+               time, fitts_bits, fitts_performance, target_distance, self.timestamp()]
 
         if not os.path.isfile("./"+file_name):
             # https://realpython.com/python-csv/
@@ -107,8 +110,10 @@ class PointingExperimentModel(object):
                     'X_Distance',
                     'Y_Distance',
                     'Time',
+                    'Fitts_ID',
+                    'Fitts_Performance',
                     'Target_Distance',
-                    "Timestamp"
+                    'Timestamp'
                 ]
                 file_writer = csv.DictWriter(result_file, fieldnames=fieldnames)
                 file_writer.writeheader()
@@ -123,7 +128,9 @@ class PointingExperimentModel(object):
                                       fieldnames[8]: res[8],
                                       fieldnames[9]: res[9],
                                       fieldnames[10]: res[10],
-                                      fieldnames[11]: res[11]
+                                      fieldnames[11]: res[11],
+                                      fieldnames[12]: res[12],
+                                      fieldnames[13]: res[13]
                                       })
         else:
             # https://stackoverflow.com/questions/2363731/append-new-row-to-old-csv-file-python
