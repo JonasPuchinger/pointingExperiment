@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Workload distribution
+# Maximilian Kögl:
+# - creating/developing the concept for the pointing technique
+# - all code in this file
+# Jonas Puchinger:
+# - creating/developing the concept for the pointing technique
+
 import math
 from PyQt5 import QtGui
 

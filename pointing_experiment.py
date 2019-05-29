@@ -1,6 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Workload distribution
+# Jonas Puchinger:
+# - general file structure (adapted from fitz_law_test.py, written by Raphael Wimmer)
+# - reading in setup json file
+# - placement and design of targets
+# Maximilian Kögl:
+# - rest of the code in this file, specifically:
+# - adjusted placement of targets
+# - registering log data (distances to target, fitts law performance, ...)
+# - logging to csv file
+# - fullscreen mode for experiment window
+# - display of instructional text at start of experiment
+# - design of setup.json
+
 import sys
 import json
 import random
@@ -88,7 +102,7 @@ class PointingExperimentModel(object):
         ellipse = self.current_targets[3]
         target_distance = math.sqrt((ellipse.center().x() - self.mouse_location[0]) ** 2 +
                                     (ellipse.center().y() - self.mouse_location[1]) ** 2)
-        fitts_bits = math.log2( (2*target_distance) / width)
+        fitts_bits = math.log2((2*target_distance) / width)
         fitts_performance = fitts_bits / (time/1000)
 
         res = [self.user_id, self.elapsed,  self.append_pointing_technique[self.elapsed-1],
@@ -178,7 +192,7 @@ class PointingExperiment(QtWidgets.QWidget):
             if self.model.append_pointing_technique[self.model.elapsed-1]:
                 self.tq.set_mouse(ev, self.model.current_targets, [i[2] for i in self.model.current_target()])
             self.update()
-    
+
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
@@ -230,7 +244,7 @@ def main():
     width, height = screen_resolution.width(), screen_resolution.height()
 
     model = PointingExperimentModel(*parse_setup(sys.argv[1]), width, height)
-    fitts_law_test = PointingExperiment(model, width, height)
+    pointing_experiment = PointingExperiment(model, width, height)
     sys.exit(app.exec_())
 
 
@@ -242,6 +256,7 @@ def parse_setup(filename):
     widths = contents['widths']
     pointing_technique = contents['pointing_technique']
     return user_id, repetitions, widths, pointing_technique
+
 
 if __name__ == '__main__':
     main()
