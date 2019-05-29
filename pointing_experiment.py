@@ -33,18 +33,21 @@ class PointingExperimentModel(object):
     def create_targets(self):
         self.targets = []
         self.append_pointing_technique = []
-        for i in range(10):
+        for i in range(self.repetitions):
             for num, width in enumerate(self.widths):
+                max_width = self.width/2 - width
+                max_height = self.height/2 - width
+                half_width = int(width/2)
 
                 targets = [
-                    (random.randrange(width, (self.width/2-width), 1),
-                     random.randrange(width, (self.height/2-width), 1), width),
-                    (random.randrange(width, (self.width/2-width), 1),
-                     -random.randrange(width, (self.height/2-width), 1), width),
-                    (-random.randrange(width, (self.width/2-width), 1),
-                     random.randrange(width, (self.height/2-width), 1), width),
-                    (-random.randrange(width, (self.width/2-width), 1),
-                     -random.randrange(width, (self.height/2-width), 1), width)
+                    (random.randrange(half_width, max_width, 1),
+                     random.randrange(half_width, max_height, 1), width),
+                    (random.randrange(half_width, max_width, 1),
+                     -random.randrange(half_width, max_height, 1), width),
+                    (-random.randrange(half_width, max_width, 1),
+                     random.randrange(half_width, max_height, 1), width),
+                    (-random.randrange(half_width, max_width, 1),
+                     -random.randrange(half_width, max_height, 1), width)
                 ]
 
                 self.append_pointing_technique.append(self.pointing_technique[num])
@@ -58,10 +61,6 @@ class PointingExperimentModel(object):
         else:
             return self.targets[self.elapsed-1]
 
-    # def click_log():
-    #     pass
-
-    # @click_log
     def check_click(self, event):
         if self.elapsed != 0:
             for num, ellipse in enumerate(self.current_targets):
